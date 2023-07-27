@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <franka_example_controllers/move_to_start_example_controller.hpp>
+#include <franka_example_controllers/joint_velocity_example_controller.hpp>
 
 #include <cassert>
 #include <cmath>
@@ -24,7 +24,7 @@
 namespace franka_example_controllers {
 
 controller_interface::InterfaceConfiguration
-MoveToStartExampleController::command_interface_configuration() const {
+JointVelocityExampleController::command_interface_configuration() const {
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
 
@@ -35,7 +35,7 @@ MoveToStartExampleController::command_interface_configuration() const {
 }
 
 controller_interface::InterfaceConfiguration
-MoveToStartExampleController::state_interface_configuration() const {
+JointVelocityExampleController::state_interface_configuration() const {
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
   for (int i = 1; i <= num_joints; ++i) {
@@ -45,14 +45,14 @@ MoveToStartExampleController::state_interface_configuration() const {
   return config;
 }
 
-controller_interface::return_type MoveToStartExampleController::update(
+controller_interface::return_type JointVelocityExampleController::update(
     const rclcpp::Time& /*time*/,
     const rclcpp::Duration& /*period*/) {
   updateJointStates();
   auto trajectory_time = this->get_node()->now() - start_time_;
-  auto motion_generator_output = motion_generator_->getDesiredJointPositions(trajectory_time);
-  Vector7d q_desired = motion_generator_output.first;
-  bool finished = motion_generator_output.second;
+  auto speed_generator_output = speed_generator_->getDesiredJointPositions(trajectory_time);
+  Vector7d q_desired = speed_generator_output.first;
+  bool finished = speed_generator_output.second;
   if (not finished) {
     const double kAlpha = 0.99;
     dq_filtered_ = (1 - kAlpha) * dq_filtered_ + kAlpha * dq_;
@@ -69,8 +69,8 @@ controller_interface::return_type MoveToStartExampleController::update(
   return controller_interface::return_type::OK;
 }
 
-CallbackReturn MoveToStartExampleController::on_init() {
-  q_goal_ << 0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4;
+CallbackReturn JointVelocityExampleController::on_init() {
+  q_vel_ << 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
   try {
     auto_declare<std::string>("arm_id", "panda");
     auto_declare<std::vector<double>>("k_gains", {});
@@ -82,7 +82,7 @@ CallbackReturn MoveToStartExampleController::on_init() {
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn MoveToStartExampleController::on_configure(
+CallbackReturn JointVelocityExampleController::on_configure(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   arm_id_ = get_node()->get_parameter("arm_id").as_string();
   auto k_gains = get_node()->get_parameter("k_gains").as_double_array();
@@ -113,15 +113,15 @@ CallbackReturn MoveToStartExampleController::on_configure(
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn MoveToStartExampleController::on_activate(
+CallbackReturn JointVelocityExampleController::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   updateJointStates();
-  motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
+  speed_generator_ = std::make_unique<SpeedGenerator>(0.2, q_, q_vel_, 2.0);
   start_time_ = this->get_node()->now();
   return CallbackReturn::SUCCESS;
 }
 
-void MoveToStartExampleController::updateJointStates() {
+void JointVelocityExampleController::updateJointStates() {
   for (auto i = 0; i < num_joints; ++i) {
     const auto& position_interface = state_interfaces_.at(2 * i);
     const auto& velocity_interface = state_interfaces_.at(2 * i + 1);
@@ -138,5 +138,5 @@ void MoveToStartExampleController::updateJointStates() {
 }  // namespace franka_example_controllers
 #include "pluginlib/class_list_macros.hpp"
 // NOLINTNEXTLINE
-PLUGINLIB_EXPORT_CLASS(franka_example_controllers::MoveToStartExampleController,
+PLUGINLIB_EXPORT_CLASS(franka_example_controllers::JointVelocityExampleController,
                        controller_interface::ControllerInterface)

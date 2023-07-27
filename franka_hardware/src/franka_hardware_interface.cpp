@@ -59,7 +59,8 @@ CallbackReturn FrankaHardwareInterface::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   robot_->initializeContinuousReading();
   hw_commands_.fill(0);
-  read();  // makes sure that the robot state is properly initialized.
+  read(rclcpp::Time(0),
+       rclcpp::Duration(0, 0));  // makes sure that the robot state is properly initialized.
   RCLCPP_INFO(getLogger(), "Started");
   return CallbackReturn::SUCCESS;
 }
@@ -72,7 +73,8 @@ CallbackReturn FrankaHardwareInterface::on_deactivate(
   return CallbackReturn::SUCCESS;
 }
 
-hardware_interface::return_type FrankaHardwareInterface::read() {
+hardware_interface::return_type FrankaHardwareInterface::read(const rclcpp::Time& /*time*/,
+                                                              const rclcpp::Duration& /*period*/) {
   const auto kState = robot_->read();
   hw_positions_ = kState.q;
   hw_velocities_ = kState.dq;
@@ -80,9 +82,10 @@ hardware_interface::return_type FrankaHardwareInterface::read() {
   return hardware_interface::return_type::OK;
 }
 
-hardware_interface::return_type FrankaHardwareInterface::write() {
+hardware_interface::return_type FrankaHardwareInterface::write(const rclcpp::Time& /*time*/,
+                                                               const rclcpp::Duration& /*period*/) {
   if (std::any_of(hw_commands_.begin(), hw_commands_.end(),
-                  [](double c) { return not std::isfinite(c); })) {
+                  [](double c) { return !std::isfinite(c); })) {
     return hardware_interface::return_type::ERROR;
   }
 
@@ -137,14 +140,14 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
   try {
     robot_ip = info_.hardware_parameters.at("robot_ip");
   } catch (const std::out_of_range& ex) {
-    RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' not set");
+    RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' ! set");
     return CallbackReturn::ERROR;
   }
   try {
     RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());
     robot_ = std::make_unique<Robot>(robot_ip, getLogger());
   } catch (const franka::Exception& e) {
-    RCLCPP_FATAL(getLogger(), "Could not connect to robot");
+    RCLCPP_FATAL(getLogger(), "Could ! connect to robot");
     RCLCPP_FATAL(getLogger(), "%s", e.what());
     return CallbackReturn::ERROR;
   }
@@ -159,11 +162,11 @@ rclcpp::Logger FrankaHardwareInterface::getLogger() {
 hardware_interface::return_type FrankaHardwareInterface::perform_command_mode_switch(
     const std::vector<std::string>& /*start_interfaces*/,
     const std::vector<std::string>& /*stop_interfaces*/) {
-  if (not effort_interface_running_ and effort_interface_claimed_) {
+  if (!effort_interface_running_ && effort_interface_claimed_) {
     robot_->stopRobot();
     robot_->initializeTorqueControl();
     effort_interface_running_ = true;
-  } else if (effort_interface_running_ and not effort_interface_claimed_) {
+  } else if (effort_interface_running_ && !effort_interface_claimed_) {
     robot_->stopRobot();
     robot_->initializeContinuousReading();
     effort_interface_running_ = false;
