@@ -21,6 +21,11 @@ find_package(rclcpp_lifecycle REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(franka_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(action_tutorials_interfaces REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
+
+rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "action_tutorials_cpp::FibonacciActionServer" EXECUTABLE fibonacci_action_server)
 
 add_library(
         ${PROJECT_NAME}
@@ -39,6 +44,10 @@ target_include_directories(
 )
 ament_target_dependencies(
         ${PROJECT_NAME}
+        "action_tutorials_interfaces"
+        "rclcpp"
+        "rclcpp_action"
+        "rclcpp_components"
         controller_interface
         hardware_interface
         pluginlib

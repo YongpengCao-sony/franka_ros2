@@ -1,7 +1,7 @@
 # This action is for send runtime commands for panda robot position control
 
 # goal
-trajectory_msgs/JointTrajectoryPoint goal_pose
+trajectory_msgs/JointTrajectoryPoint goal_pos
 ---
 # result
 trajectory_msgs/JointTrajectory traj_plan
@@ -9,4 +9,4 @@ bool success
 string error
 ---
 # feedback
-trajectory_msgs/JointTrajectoryPoint current_pose
+trajectory_msgs/JointTrajectoryPoint current_pos
