@@ -4,13 +4,22 @@ project(franka_msgs)
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(control_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
+find_package(action_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Grasp.action"
   "action/Homing.action"
   "action/Move.action"
+  "action/RuntimePos.action"
   "msg/GraspEpsilon.msg"
-  DEPENDENCIES std_msgs builtin_interfaces
+  DEPENDENCIES 
+  std_msgs 
+  builtin_interfaces
+  action_msgs
+  trajectory_msgs
 )
 
 if(BUILD_TESTING)
