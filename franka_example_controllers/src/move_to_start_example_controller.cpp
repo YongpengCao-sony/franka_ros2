@@ -14,12 +14,11 @@
 
 #include <franka_example_controllers/move_to_start_example_controller.hpp>
 
+#include <Eigen/Eigen>
 #include <cassert>
 #include <cmath>
-#include <exception>
-
-#include <Eigen/Eigen>
 #include <controller_interface/controller_interface.hpp>
+#include <exception>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -208,7 +207,8 @@ CallbackReturn MoveToStartExampleController::on_configure(
 CallbackReturn MoveToStartExampleController::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   updateJointStates();
-  // activate server?
+  motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
+  start_time_ = this->get_node()->now();
   return CallbackReturn::SUCCESS;
 }
 
@@ -219,9 +219,8 @@ void MoveToStartExampleController::updateJointStates() {
 
     assert(position_interface.get_interface_name() == "position");
     assert(velocity_interface.get_interface_name() == "velocity");
-
-    RCLCPP_INFO(get_node()->get_logger(), "Current position of joint %d is %f", i,
-                position_interface.get_value());
+    // RCLCPP_INFO(get_node()->get_logger(), "Current position of joint %d is %f", i,
+    // position_interface.get_value());
     q_(i) = position_interface.get_value();
     dq_(i) = velocity_interface.get_value();
   }
@@ -229,6 +228,7 @@ void MoveToStartExampleController::updateJointStates() {
 }  // namespace franka_example_controllers
 #include "pluginlib/class_list_macros.hpp"
 // NOLINTNEXTLINE
+
 PLUGINLIB_EXPORT_CLASS(franka_example_controllers::MoveToStartExampleController,
                        controller_interface::ControllerInterface)
 RCLCPP_COMPONENTS_REGISTER_NODE(franka_example_controllers::FibonacciActionServer)

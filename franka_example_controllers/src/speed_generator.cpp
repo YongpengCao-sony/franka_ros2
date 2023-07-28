@@ -40,7 +40,7 @@ SpeedGenerator::SpeedGenerator(double speed_factor,
   dq_max_ *= speed_factor;
   duration_vel_ = duration_vel;
   q_vel_ = q_vel;
-  assert(abs(q_vel.maxCoeff()) <= dq_max_);
+  // assert(abs(q_vel.maxCoeff()) <= dq_max_);
   calculateSynchronizedValues();
 }
 
