@@ -24,10 +24,9 @@
 #include "motion_generator.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
+bool action_is_received_ = false;
 
 namespace franka_example_controllers {
-
-bool action_is_received_ = false;
 
 /// The move to start example controller moves the robot into default pose.
 class MoveToStartExampleController : public controller_interface::ControllerInterface {

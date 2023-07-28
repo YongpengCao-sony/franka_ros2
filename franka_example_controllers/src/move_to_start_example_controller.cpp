@@ -28,8 +28,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 
-namespace franka_example_controllers {
-
+namespace action_tutorials_cpp {
 class FibonacciActionServer : public rclcpp::Node {
  public:
   using Fibonacci = action_tutorials_interfaces::action::Fibonacci;
@@ -52,6 +51,7 @@ class FibonacciActionServer : public rclcpp::Node {
                                           std::shared_ptr<const Fibonacci::Goal> goal) {
     RCLCPP_INFO(this->get_logger(), "Received goal request with order %d", goal->order);
     (void)uuid;
+    action_is_received_ = true;
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
 
@@ -59,6 +59,7 @@ class FibonacciActionServer : public rclcpp::Node {
       const std::shared_ptr<GoalHandleFibonacci> goal_handle) {
     RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
     (void)goal_handle;
+    // action_is_received_ = false;
     return rclcpp_action::CancelResponse::ACCEPT;
   }
 
@@ -70,11 +71,10 @@ class FibonacciActionServer : public rclcpp::Node {
 
   void execute(const std::shared_ptr<GoalHandleFibonacci> goal_handle) {
     RCLCPP_INFO(this->get_logger(), "Executing goal");
-    rclcpp::Rate loop_rate(10);  // one second in total for the action to run
+    rclcpp::Rate loop_rate(1);
     const auto goal = goal_handle->get_goal();
     auto feedback = std::make_shared<Fibonacci::Feedback>();
     auto& sequence = feedback->partial_sequence;
-    action_is_received_ = true;
     sequence.push_back(0);
     sequence.push_back(1);
     auto result = std::make_shared<Fibonacci::Result>();
@@ -101,10 +101,13 @@ class FibonacciActionServer : public rclcpp::Node {
       result->sequence = sequence;
       goal_handle->succeed(result);
       RCLCPP_INFO(this->get_logger(), "Goal succeeded");
-      action_is_received_ = false;  // set action state to false since it's completed
     }
   }
 };  // class FibonacciActionServer
+
+}  // namespace action_tutorials_cpp
+
+namespace franka_example_controllers {
 
 controller_interface::InterfaceConfiguration
 MoveToStartExampleController::command_interface_configuration() const {
@@ -132,7 +135,7 @@ controller_interface::return_type MoveToStartExampleController::update(
     const rclcpp::Time& /*time*/,
     const rclcpp::Duration& /*period*/) {
   updateJointStates();
-  if (action_is_received_) {  // need to be implement
+  if (action_is_received_) {
     RCLCPP_INFO(get_node()->get_logger(), "action is running now");
     motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
     start_time_ = this->get_node()->now();
@@ -231,4 +234,4 @@ void MoveToStartExampleController::updateJointStates() {
 
 PLUGINLIB_EXPORT_CLASS(franka_example_controllers::MoveToStartExampleController,
                        controller_interface::ControllerInterface)
-RCLCPP_COMPONENTS_REGISTER_NODE(franka_example_controllers::FibonacciActionServer)
+RCLCPP_COMPONENTS_REGISTER_NODE(action_tutorials_cpp::FibonacciActionServer)
