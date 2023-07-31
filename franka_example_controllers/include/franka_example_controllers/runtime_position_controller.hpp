@@ -22,6 +22,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "motion_generator.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -40,10 +41,12 @@ class RuntimePositionController : public controller_interface::ControllerInterfa
 
  private:
   bool new_goal_is_received_ = false;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr goal_subscriber_ = nullptr;
   std::string arm_id_;
   const int num_joints = 7;
   Vector7d q_;
   Vector7d q_goal_;
+  Vector7d q_current_goal_;
   Vector7d dq_;
   Vector7d dq_filtered_;
   Vector7d k_gains_;

@@ -26,6 +26,7 @@ find_package(pluginlib REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(action_tutorials_interfaces REQUIRED)
+find_package(std_msgs REQUIRED)
 
 find_package(Franka REQUIRED)
 
@@ -58,6 +59,7 @@ ament_target_dependencies(
         rclcpp_lifecycle
         rclcpp_components
         Franka
+        std_msgs
         sensor_msgs
         control_msgs
         std_srvs

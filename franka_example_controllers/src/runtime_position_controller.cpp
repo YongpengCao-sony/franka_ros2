@@ -54,15 +54,37 @@ controller_interface::return_type RuntimePositionController::update(
     const rclcpp::Time& /*time*/,
     const rclcpp::Duration& /*period*/) {
   updateJointStates();
-  new_goal_is_received_ = true;
+  // "~/cmd_vel"
+  goal_subscriber_ = get_node()->create_subscription<sensor_msgs::msg::JointState>(
+      "~/position_goal", rclcpp::SystemDefaultsQoS(),
+      [this](const std::shared_ptr<sensor_msgs::msg::JointState> msg) -> void {
+        // if (!subscriber_is_active_) {
+        // RCLCPP_WARN(get_node()->get_logger(),
+        //             "Can't accept new commands. subscriber is inactive");
+        // return;
+        // }
+
+        std::shared_ptr<sensor_msgs::msg::JointState> joint_goal;
+        // twist_stamped->twist = *msg;
+        joint_goal->position = msg->position;
+        q_goal_ << joint_goal->position[0], joint_goal->position[1], joint_goal->position[2],
+            joint_goal->position[3], joint_goal->position[4], joint_goal->position[5],
+            joint_goal->position[6];
+        RCLCPP_WARN(get_node()->get_logger(), "Received joint1 position: %d",
+                    joint_goal->position[0]);
+        if (q_goal_ != q_current_goal_)
+          new_goal_is_received_ = true;
+      });
+
   if (new_goal_is_received_) {
     RCLCPP_INFO(get_node()->get_logger(), "received new goal! start executing now.");
     motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
     start_time_ = this->get_node()->now();
+    new_goal_is_received_ = false;
   } else {
     RCLCPP_INFO(get_node()->get_logger(), "No new goal detected");
   }
-
+  q_current_goal_ = q_goal_;
   auto trajectory_time = this->get_node()->now() - start_time_;
   auto motion_generator_output = motion_generator_->getDesiredJointPositions(trajectory_time);
   Vector7d q_desired = motion_generator_output.first;
@@ -124,6 +146,7 @@ CallbackReturn RuntimePositionController::on_configure(
     k_gains_(i) = k_gains.at(i);
   }
   dq_filtered_.setZero();
+
   return CallbackReturn::SUCCESS;
 }
 
