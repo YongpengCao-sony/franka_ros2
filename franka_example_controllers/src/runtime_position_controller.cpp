@@ -80,7 +80,7 @@ controller_interface::return_type RuntimePositionController::update(
     RCLCPP_INFO(get_node()->get_logger(), "received new goal! start executing now.");
     motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
     start_time_ = this->get_node()->now();
-    new_goal_is_received_ = false;
+    new_goal_is_received_ = false;  // follow the current goal until a different goal is received
   } else {
     RCLCPP_INFO(get_node()->get_logger(), "No new goal detected");
   }
