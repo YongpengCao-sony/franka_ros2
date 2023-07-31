@@ -17,4 +17,10 @@
             The move to start example controller moves the robot into default pose.
         </description>
     </class>
+    <class name="franka_example_controllers/RuntimePositionController"
+           type="franka_example_controllers::RuntimePositionController" base_class_type="controller_interface::ControllerInterface">
+        <description>
+            The runtime position controller can move the robot to the desired pose in runtime.
+        </description>
+    </class>
 </library>

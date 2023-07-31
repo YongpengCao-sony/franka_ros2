@@ -71,7 +71,7 @@ def generate_launch_description():
             Node(
                 package='controller_manager',
                 executable='spawner',
-                arguments=['move_to_start_example_controller'],
+                arguments=['runtime_position_controller'],
                 output='screen',
             ),
         ]

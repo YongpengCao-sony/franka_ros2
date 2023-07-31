@@ -12,19 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <franka_example_controllers/move_to_start_example_controller.hpp>
-
-#include <cassert>
-#include <cmath>
-#include <exception>
+#include <franka_example_controllers/runtime_position_controller.hpp>
 
 #include <Eigen/Eigen>
+#include <cassert>
+#include <cmath>
 #include <controller_interface/controller_interface.hpp>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <thread>
+
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
 
 namespace franka_example_controllers {
 
 controller_interface::InterfaceConfiguration
-MoveToStartExampleController::command_interface_configuration() const {
+RuntimePositionController::command_interface_configuration() const {
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
 
@@ -35,7 +40,7 @@ MoveToStartExampleController::command_interface_configuration() const {
 }
 
 controller_interface::InterfaceConfiguration
-MoveToStartExampleController::state_interface_configuration() const {
+RuntimePositionController::state_interface_configuration() const {
   controller_interface::InterfaceConfiguration config;
   config.type = controller_interface::interface_configuration_type::INDIVIDUAL;
   for (int i = 1; i <= num_joints; ++i) {
@@ -45,10 +50,19 @@ MoveToStartExampleController::state_interface_configuration() const {
   return config;
 }
 
-controller_interface::return_type MoveToStartExampleController::update(
+controller_interface::return_type RuntimePositionController::update(
     const rclcpp::Time& /*time*/,
     const rclcpp::Duration& /*period*/) {
   updateJointStates();
+  new_goal_is_received_ = true;
+  if (new_goal_is_received_) {
+    RCLCPP_INFO(get_node()->get_logger(), "received new goal! start executing now.");
+    motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
+    start_time_ = this->get_node()->now();
+  } else {
+    RCLCPP_INFO(get_node()->get_logger(), "No new goal detected");
+  }
+
   auto trajectory_time = this->get_node()->now() - start_time_;
   auto motion_generator_output = motion_generator_->getDesiredJointPositions(trajectory_time);
   Vector7d q_desired = motion_generator_output.first;
@@ -69,7 +83,7 @@ controller_interface::return_type MoveToStartExampleController::update(
   return controller_interface::return_type::OK;
 }
 
-CallbackReturn MoveToStartExampleController::on_init() {
+CallbackReturn RuntimePositionController::on_init() {
   q_goal_ << 0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4;
   try {
     auto_declare<std::string>("arm_id", "panda");
@@ -82,7 +96,7 @@ CallbackReturn MoveToStartExampleController::on_init() {
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn MoveToStartExampleController::on_configure(
+CallbackReturn RuntimePositionController::on_configure(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   arm_id_ = get_node()->get_parameter("arm_id").as_string();
   auto k_gains = get_node()->get_parameter("k_gains").as_double_array();
@@ -113,7 +127,7 @@ CallbackReturn MoveToStartExampleController::on_configure(
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn MoveToStartExampleController::on_activate(
+CallbackReturn RuntimePositionController::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   updateJointStates();
   motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);
@@ -121,14 +135,15 @@ CallbackReturn MoveToStartExampleController::on_activate(
   return CallbackReturn::SUCCESS;
 }
 
-void MoveToStartExampleController::updateJointStates() {
+void RuntimePositionController::updateJointStates() {
   for (auto i = 0; i < num_joints; ++i) {
     const auto& position_interface = state_interfaces_.at(2 * i);
     const auto& velocity_interface = state_interfaces_.at(2 * i + 1);
 
     assert(position_interface.get_interface_name() == "position");
     assert(velocity_interface.get_interface_name() == "velocity");
-
+    // RCLCPP_INFO(get_node()->get_logger(), "Current position of joint %d is %f", i,
+    // position_interface.get_value());
     q_(i) = position_interface.get_value();
     dq_(i) = velocity_interface.get_value();
   }
@@ -136,5 +151,6 @@ void MoveToStartExampleController::updateJointStates() {
 }  // namespace franka_example_controllers
 #include "pluginlib/class_list_macros.hpp"
 // NOLINTNEXTLINE
-PLUGINLIB_EXPORT_CLASS(franka_example_controllers::MoveToStartExampleController,
+
+PLUGINLIB_EXPORT_CLASS(franka_example_controllers::RuntimePositionController,
                        controller_interface::ControllerInterface)

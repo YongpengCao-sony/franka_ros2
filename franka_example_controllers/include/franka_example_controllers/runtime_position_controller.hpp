@@ -27,8 +27,7 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 
 namespace franka_example_controllers {
 
-/// The move to start example controller moves the robot into default pose.
-class MoveToStartExampleController : public controller_interface::ControllerInterface {
+class RuntimePositionController : public controller_interface::ControllerInterface {
  public:
   using Vector7d = Eigen::Matrix<double, 7, 1>;
   controller_interface::InterfaceConfiguration command_interface_configuration() const override;
@@ -40,6 +39,7 @@ class MoveToStartExampleController : public controller_interface::ControllerInte
   CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) override;
 
  private:
+  bool new_goal_is_received_ = false;
   std::string arm_id_;
   const int num_joints = 7;
   Vector7d q_;
