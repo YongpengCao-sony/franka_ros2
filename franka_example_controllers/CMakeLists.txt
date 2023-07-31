@@ -14,16 +14,24 @@ option(CHECK_TIDY "Adds clang-tidy tests" OFF)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(controller_interface REQUIRED)
-find_package(pluginlib REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
-find_package(hardware_interface REQUIRED)
-find_package(franka_msgs REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(action_tutorials_interfaces REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(controller_interface REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(control_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
+find_package(action_msgs REQUIRED)
+find_package(franka_msgs REQUIRED)
+find_package(hardware_interface REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(action_tutorials_interfaces REQUIRED)
+
+find_package(Franka REQUIRED)
+
 
 rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "action_tutorials_cpp::FibonacciActionServer" EXECUTABLE fibonacci_action_server)
 
@@ -34,8 +42,11 @@ add_library(
         src/joint_impedance_example_controller.cpp
         src/move_to_start_example_controller.cpp
         src/joint_velocity_example_controller.cpp
+        src/pos_control_client.cpp
+        src/pos_control_server.cpp
         src/motion_generator.cpp
         src/speed_generator.cpp)
+
 target_include_directories(
         ${PROJECT_NAME}
         PUBLIC
@@ -49,14 +60,25 @@ ament_target_dependencies(
         "rclcpp_action"
         "rclcpp_components"
         controller_interface
+        rclcpp_action
         hardware_interface
         pluginlib
         rclcpp
+        franka_msgs
         rclcpp_lifecycle
+        rclcpp_components
+        Franka
+        action_msgs
+        sensor_msgs
+        control_msgs
+        std_srvs
 )
 
 pluginlib_export_plugin_description_file(
         controller_interface franka_example_controllers.xml)
+
+rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "runtime_position_control::RuntimePosActionClient" EXECUTABLE runtime_pos_action_client)
+rclcpp_components_register_node(${PROJECT_NAME} PLUGIN "runtime_position_control::RuntimePosActionServer" EXECUTABLE runtime_pos_action_server)
 
 install(
         TARGETS

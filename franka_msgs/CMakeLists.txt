@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(franka_msgs)
 
 find_package(ament_cmake REQUIRED)
@@ -9,6 +9,12 @@ find_package(trajectory_msgs REQUIRED)
 find_package(action_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/Grasp.action"
   "action/Homing.action"
@@ -21,10 +27,5 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   action_msgs
   trajectory_msgs
 )
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-endif()
 
 ament_package()

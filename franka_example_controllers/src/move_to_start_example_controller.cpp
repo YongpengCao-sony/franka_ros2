@@ -51,7 +51,7 @@ class FibonacciActionServer : public rclcpp::Node {
                                           std::shared_ptr<const Fibonacci::Goal> goal) {
     RCLCPP_INFO(this->get_logger(), "Received goal request with order %d", goal->order);
     (void)uuid;
-    action_is_received_ = true;
+    // action_is_received_ = true;
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
 
@@ -72,11 +72,17 @@ class FibonacciActionServer : public rclcpp::Node {
   void execute(const std::shared_ptr<GoalHandleFibonacci> goal_handle) {
     RCLCPP_INFO(this->get_logger(), "Executing goal");
     rclcpp::Rate loop_rate(1);
+    if (action_is_received_) {
+      RCLCPP_INFO(this->get_logger(), "worked");
+    } else {
+      RCLCPP_INFO(this->get_logger(), "not working even in reverse");
+    }
     const auto goal = goal_handle->get_goal();
     auto feedback = std::make_shared<Fibonacci::Feedback>();
     auto& sequence = feedback->partial_sequence;
     sequence.push_back(0);
     sequence.push_back(1);
+
     auto result = std::make_shared<Fibonacci::Result>();
 
     for (int i = 1; (i < goal->order) && rclcpp::ok(); ++i) {
@@ -135,6 +141,7 @@ controller_interface::return_type MoveToStartExampleController::update(
     const rclcpp::Time& /*time*/,
     const rclcpp::Duration& /*period*/) {
   updateJointStates();
+  action_is_received_ = true;
   if (action_is_received_) {
     RCLCPP_INFO(get_node()->get_logger(), "action is running now");
     motion_generator_ = std::make_unique<MotionGenerator>(0.2, q_, q_goal_);

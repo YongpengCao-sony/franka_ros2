@@ -4,9 +4,9 @@
 trajectory_msgs/JointTrajectoryPoint goal_pos
 ---
 # result
-trajectory_msgs/JointTrajectory traj_plan
-bool success
-string error
+trajectory_msgs/JointTrajectoryPoint[] traj_plan
 ---
 # feedback
 trajectory_msgs/JointTrajectoryPoint current_pos
+bool success
+string error
