@@ -48,7 +48,6 @@ target_include_directories(
 )
 ament_target_dependencies(
         ${PROJECT_NAME}
-        "action_tutorials_interfaces"
         "rclcpp"
         "rclcpp_components"
         controller_interface

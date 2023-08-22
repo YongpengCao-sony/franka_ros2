@@ -24,16 +24,4 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/Grasp.action"
-  "action/Homing.action"
-  "action/Move.action"
-  "msg/GraspEpsilon.msg"
-  DEPENDENCIES 
-  std_msgs 
-  builtin_interfaces
-  action_msgs
-  trajectory_msgs
-)
-
 ament_package()
