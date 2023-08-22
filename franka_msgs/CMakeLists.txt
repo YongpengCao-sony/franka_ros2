@@ -9,6 +9,15 @@ find_package(trajectory_msgs REQUIRED)
 find_package(action_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "action/Grasp.action"
+  "action/Homing.action"
+  "action/Move.action"
+  "msg/Errors.msg"
+  "msg/GraspEpsilon.msg"
+  "msg/FrankaRobotState.msg"
+  DEPENDENCIES std_msgs builtin_interfaces
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

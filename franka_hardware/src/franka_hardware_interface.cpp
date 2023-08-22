@@ -32,6 +32,9 @@ namespace franka_hardware {
 using StateInterface = hardware_interface::StateInterface;
 using CommandInterface = hardware_interface::CommandInterface;
 
+FrankaHardwareInterface::FrankaHardwareInterface(std::unique_ptr<Robot> robot)
+    : robot_{std::move(robot)} {}
+
 std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
   std::vector<StateInterface> state_interfaces;
   for (auto i = 0U; i < info_.joints.size(); i++) {
@@ -42,6 +45,15 @@ std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
     state_interfaces.emplace_back(
         StateInterface(info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &hw_efforts_.at(i)));
   }
+
+  state_interfaces.emplace_back(StateInterface(
+      k_robot_name, k_robot_state_interface_name,
+      reinterpret_cast<double*>(  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          &hw_franka_robot_state_addr_)));
+  state_interfaces.emplace_back(StateInterface(
+      k_robot_name, k_robot_model_interface_name,
+      reinterpret_cast<double*>(  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          &hw_franka_model_ptr_)));
   return state_interfaces;
 }
 
@@ -75,17 +87,20 @@ CallbackReturn FrankaHardwareInterface::on_deactivate(
 
 hardware_interface::return_type FrankaHardwareInterface::read(const rclcpp::Time& /*time*/,
                                                               const rclcpp::Duration& /*period*/) {
-  const auto kState = robot_->read();
-  hw_positions_ = kState.q;
-  hw_velocities_ = kState.dq;
-  hw_efforts_ = kState.tau_J;
+  if (hw_franka_model_ptr_ == nullptr) {
+    hw_franka_model_ptr_ = robot_->getModel();
+  }
+  hw_franka_robot_state_ = robot_->read();
+  hw_positions_ = hw_franka_robot_state_.q;
+  hw_velocities_ = hw_franka_robot_state_.dq;
+  hw_efforts_ = hw_franka_robot_state_.tau_J;
   return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type FrankaHardwareInterface::write(const rclcpp::Time& /*time*/,
                                                                const rclcpp::Duration& /*period*/) {
   if (std::any_of(hw_commands_.begin(), hw_commands_.end(),
-                  [](double c) { return !std::isfinite(c); })) {
+                  [](double hw_command) { return !std::isfinite(hw_command); })) {
     return hardware_interface::return_type::ERROR;
   }
 
@@ -127,31 +142,33 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
     }
     if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY) {
       RCLCPP_FATAL(getLogger(), "Joint '%s' has unexpected state interface '%s'. Expected '%s'",
-                   joint.name.c_str(), joint.state_interfaces[0].name.c_str(),
+                   joint.name.c_str(), joint.state_interfaces[1].name.c_str(),
                    hardware_interface::HW_IF_VELOCITY);
     }
     if (joint.state_interfaces[2].name != hardware_interface::HW_IF_EFFORT) {
       RCLCPP_FATAL(getLogger(), "Joint '%s' has unexpected state interface '%s'. Expected '%s'",
-                   joint.name.c_str(), joint.state_interfaces[0].name.c_str(),
+                   joint.name.c_str(), joint.state_interfaces[2].name.c_str(),
                    hardware_interface::HW_IF_EFFORT);
     }
   }
-  std::string robot_ip;
-  try {
-    robot_ip = info_.hardware_parameters.at("robot_ip");
-  } catch (const std::out_of_range& ex) {
-    RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' ! set");
-    return CallbackReturn::ERROR;
+  if (!robot_) {
+    std::string robot_ip;
+    try {
+      robot_ip = info_.hardware_parameters.at("robot_ip");
+    } catch (const std::out_of_range& ex) {
+      RCLCPP_FATAL(getLogger(), "Parameter 'robot_ip' is not set");
+      return CallbackReturn::ERROR;
+    }
+    try {
+      RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());
+      robot_ = std::make_unique<Robot>(robot_ip, getLogger());
+    } catch (const franka::Exception& e) {
+      RCLCPP_FATAL(getLogger(), "Could not connect to robot");
+      RCLCPP_FATAL(getLogger(), "%s", e.what());
+      return CallbackReturn::ERROR;
+    }
+    RCLCPP_INFO(getLogger(), "Successfully connected to robot");
   }
-  try {
-    RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());
-    robot_ = std::make_unique<Robot>(robot_ip, getLogger());
-  } catch (const franka::Exception& e) {
-    RCLCPP_FATAL(getLogger(), "Could ! connect to robot");
-    RCLCPP_FATAL(getLogger(), "%s", e.what());
-    return CallbackReturn::ERROR;
-  }
-  RCLCPP_INFO(getLogger(), "Successfully connected to robot");
   return CallbackReturn::SUCCESS;
 }
 

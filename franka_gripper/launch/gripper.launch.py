@@ -32,7 +32,13 @@ def generate_launch_description():
     arm_id = LaunchConfiguration(arm_parameter_name)
     joint_names = LaunchConfiguration(joint_names_parameter_name)
 
+<<<<<<< HEAD
     gripper_config = os.path.join(get_package_share_directory('franka_gripper'), 'config', 'franka_gripper_node.yaml')
+=======
+    gripper_config = os.path.join(
+        get_package_share_directory('franka_gripper'), 'config', 'franka_gripper_node.yaml'
+    )
+>>>>>>> origin/humble_new
 
     default_joint_name_postfix = '_finger_joint'
     arm_default_argument = [
@@ -49,17 +55,36 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+<<<<<<< HEAD
             DeclareLaunchArgument(robot_ip_parameter_name, description='Hostname or IP address of the robot.'),
             DeclareLaunchArgument(
                 use_fake_hardware_parameter_name,
                 default_value='false',
                 description='Publish fake gripper joint states without connecting to a real gripper',
+=======
+            DeclareLaunchArgument(
+                robot_ip_parameter_name, description='Hostname or IP address of the robot.'
+            ),
+            DeclareLaunchArgument(
+                use_fake_hardware_parameter_name,
+                default_value='false',
+                description=(
+                    'Publish fake gripper joint states without connecting to a real gripper'
+                ),
+>>>>>>> origin/humble_new
             ),
             DeclareLaunchArgument(
                 arm_parameter_name,
                 default_value='panda',
+<<<<<<< HEAD
                 description='Name of the arm in the URDF file. This is used to generate the joint '
                 'names of the gripper.',
+=======
+                description=(
+                    'Name of the arm in the URDF file. This is used to generate the joint '
+                    'names of the gripper.'
+                ),
+>>>>>>> origin/humble_new
             ),
             DeclareLaunchArgument(
                 joint_names_parameter_name,

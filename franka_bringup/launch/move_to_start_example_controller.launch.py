@@ -38,23 +38,28 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(robot_ip_parameter_name, description='Hostname or IP address of the robot.'),
             DeclareLaunchArgument(
-                use_rviz_parameter_name, default_value='false', description='Visualize the robot in Rviz'
+                use_rviz_parameter_name,
+                default_value='false',
+                description='Visualize the robot in Rviz',
             ),
             DeclareLaunchArgument(
-                use_fake_hardware_parameter_name, default_value='false', description='Use fake hardware'
+                use_fake_hardware_parameter_name,
+                default_value='false',
+                description='Use fake hardware',
             ),
             DeclareLaunchArgument(
                 fake_sensor_commands_parameter_name,
                 default_value='false',
-                description="Fake sensor commands. Only valid when '{}' is true".format(
+                description='Fake sensor commands. Only valid when "{}" is true'.format(
                     use_fake_hardware_parameter_name
                 ),
             ),
             DeclareLaunchArgument(
                 load_gripper_parameter_name,
                 default_value='true',
-                description='Use Franka Gripper as an end-effector, otherwise, the robot is loaded '
-                'without an end-effector.',
+                description=(
+                    'Use Franka Gripper as an end-effector, otherwise, the robot is loaded ' 'without an end-effector.'
+                ),
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(

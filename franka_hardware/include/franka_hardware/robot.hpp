@@ -22,7 +22,9 @@
 #include <string>
 #include <thread>
 
+#include <franka/model.h>
 #include <franka/robot.h>
+#include <franka_hardware/model.hpp>
 #include <rclcpp/logger.hpp>
 
 namespace franka_hardware {
@@ -49,41 +51,54 @@ class Robot {
    * Starts a torque control loop. Before using this method make sure that no other
    * control or reading loop is currently active.
    */
-  void initializeTorqueControl();
+  virtual void initializeTorqueControl();
 
   /**
    * Starts a reading loop of the robot state. Before using this method make sure that no other
    * control or reading loop is currently active.
    */
-  void initializeContinuousReading();
+  virtual void initializeContinuousReading();
 
   /// stops the control or reading loop of the robot.
-  void stopRobot();
+  virtual void stopRobot();
 
   /**
    * Get the current robot state in a thread-safe way.
    * @return current robot state.
    */
-  franka::RobotState read();
+  virtual franka::RobotState read();
+
+  /**
+   * Return pointer to the franka robot model object .
+   * @return pointer to the current robot model.
+   */
+  virtual franka_hardware::Model* getModel();
 
   /**
    * Sends new desired torque commands to the control loop in a thread-safe way.
    * The robot will use these torques until a different set of torques are commanded.
    * @param[in] efforts torque command for each joint.
    */
-  void write(const std::array<double, 7>& efforts);
+  virtual void write(const std::array<double, 7>& efforts);
 
   /// @return true if there is no control or reading loop running.
-  bool isStopped() const;
+  [[nodiscard]] virtual bool isStopped() const;
+
+ protected:
+  Robot() = default;
 
  private:
   std::unique_ptr<std::thread> control_thread_;
   std::unique_ptr<franka::Robot> robot_;
+  std::unique_ptr<franka::Model> model_;
+  std::unique_ptr<Model> franka_hardware_model_;
+
   std::mutex read_mutex_;
   std::mutex write_mutex_;
   std::atomic_bool finish_{false};
   bool stopped_ = true;
   franka::RobotState current_state_;
+
   std::array<double, 7> tau_command_{};
 };
 }  // namespace franka_hardware
