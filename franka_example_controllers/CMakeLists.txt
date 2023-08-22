@@ -15,13 +15,13 @@ option(CHECK_TIDY "Adds clang-tidy tests" OFF)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(controller_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(hardware_interface REQUIRED)
+find_package(franka_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(franka_semantic_components)
 find_package(generate_parameter_library)
@@ -48,8 +48,6 @@ target_include_directories(
 )
 ament_target_dependencies(
         ${PROJECT_NAME}
-        "rclcpp"
-        "rclcpp_components"
         controller_interface
         hardware_interface
         pluginlib
