@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <franka_hardware/franka_hardware_interface.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <exception>
@@ -27,12 +25,14 @@
 #include <rclcpp/macros.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+#include "franka_hardware/franka_hardware_interface.hpp"
+
 namespace franka_hardware {
 
 using StateInterface = hardware_interface::StateInterface;
 using CommandInterface = hardware_interface::CommandInterface;
 
-FrankaHardwareInterface::FrankaHardwareInterface(std::unique_ptr<Robot> robot)
+FrankaHardwareInterface::FrankaHardwareInterface(std::shared_ptr<Robot> robot)
     : robot_{std::move(robot)} {}
 
 std::vector<StateInterface> FrankaHardwareInterface::export_state_interfaces() {
@@ -69,7 +69,6 @@ std::vector<CommandInterface> FrankaHardwareInterface::export_command_interfaces
 
 CallbackReturn FrankaHardwareInterface::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  robot_->initializeContinuousReading();
   hw_commands_.fill(0);
   read(rclcpp::Time(0),
        rclcpp::Duration(0, 0));  // makes sure that the robot state is properly initialized.
@@ -90,10 +89,12 @@ hardware_interface::return_type FrankaHardwareInterface::read(const rclcpp::Time
   if (hw_franka_model_ptr_ == nullptr) {
     hw_franka_model_ptr_ = robot_->getModel();
   }
-  hw_franka_robot_state_ = robot_->read();
+
+  hw_franka_robot_state_ = robot_->readOnce();
   hw_positions_ = hw_franka_robot_state_.q;
   hw_velocities_ = hw_franka_robot_state_.dq;
   hw_efforts_ = hw_franka_robot_state_.tau_J;
+
   return hardware_interface::return_type::OK;
 }
 
@@ -103,8 +104,9 @@ hardware_interface::return_type FrankaHardwareInterface::write(const rclcpp::Tim
                   [](double hw_command) { return !std::isfinite(hw_command); })) {
     return hardware_interface::return_type::ERROR;
   }
-
-  robot_->write(hw_commands_);
+  if (effort_interface_running_) {
+    robot_->writeOnce(hw_commands_);
+  }
   return hardware_interface::return_type::OK;
 }
 
@@ -161,7 +163,7 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
     }
     try {
       RCLCPP_INFO(getLogger(), "Connecting to robot at \"%s\" ...", robot_ip.c_str());
-      robot_ = std::make_unique<Robot>(robot_ip, getLogger());
+      robot_ = std::make_shared<Robot>(robot_ip, getLogger());
     } catch (const franka::Exception& e) {
       RCLCPP_FATAL(getLogger(), "Could not connect to robot");
       RCLCPP_FATAL(getLogger(), "%s", e.what());
@@ -169,6 +171,10 @@ CallbackReturn FrankaHardwareInterface::on_init(const hardware_interface::Hardwa
     }
     RCLCPP_INFO(getLogger(), "Successfully connected to robot");
   }
+
+  node_ = std::make_shared<FrankaParamServiceServer>(rclcpp::NodeOptions(), robot_);
+  executor_ = std::make_shared<FrankaExecutor>();
+  executor_->add_node(node_);
   return CallbackReturn::SUCCESS;
 }
 
@@ -181,11 +187,10 @@ hardware_interface::return_type FrankaHardwareInterface::perform_command_mode_sw
     const std::vector<std::string>& /*stop_interfaces*/) {
   if (!effort_interface_running_ && effort_interface_claimed_) {
     robot_->stopRobot();
-    robot_->initializeTorqueControl();
+    robot_->initializeReadWriteInterface();
     effort_interface_running_ = true;
   } else if (effort_interface_running_ && !effort_interface_claimed_) {
     robot_->stopRobot();
-    robot_->initializeContinuousReading();
     effort_interface_running_ = false;
   }
   return hardware_interface::return_type::OK;
